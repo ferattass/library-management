@@ -113,6 +113,30 @@ modules/books/
 
 Seed ile gelen admin: `admin@kutupyonet.local` / `Admin123!`
 
+### Kitap sorgulama
+
+`GET /api/books` sayfalama, arama, filtreleme ve sıralama destekler:
+
+```
+?page=2&limit=20
+?search=huzur                     # başlıkta VEYA yazar adında geçen
+?category=Roman                   # ad ya da slug
+?author=Tanpınar&category=Roman   # birden fazla filtre AND ile birleşir
+?sortBy=publishedYear&sortOrder=desc
+```
+
+Yanıt `{ data, meta }` şeklindedir; `meta` içinde `total`, `totalPages`,
+`hasNext`, `hasPrevious` bulunur.
+
+`sortBy` beyaz listedir (`title`, `publishedYear`, `createdAt`,
+`availableCopies`) — serbest metin kabul edilseydi istemci şemadaki
+herhangi bir kolona sıralama üzerinden erişmeye çalışabilirdi. `limit`
+üst sınırı 100.
+
+Arama `ILIKE '%...%'` üretir ve `books_title_trgm_idx` trigram GIN
+index'inden yararlanır; `EXPLAIN` ile Bitmap Index Scan kullanıldığı
+doğrulanmıştır.
+
 ### Stok modeli
 
 `totalCopies` kütüphanedeki toplam kopya, `availableCopies` rafta olan kopya.
@@ -157,7 +181,7 @@ Etkilenen nesneler:
 - [x] **Sprint 1** — Analiz, ER diyagramı, veritabanı tasarımı, Docker
 - [x] **Sprint 2** — Authentication & Authorization (JWT, bcrypt, roller)
 - [x] **Sprint 3** — Katalog yönetimi (author, category, publisher, book CRUD)
-- [ ] **Sprint 4** — Arama, filtreleme, sayfalama, sıralama
+- [x] **Sprint 4** — Arama, filtreleme, sayfalama, sıralama
 - [ ] **Sprint 5** — Ödünç alma & rezervasyon (transaction, stok kontrolü)
 - [ ] **Sprint 6** — Yorum, loglama, test, Swagger
 

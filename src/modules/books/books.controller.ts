@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { RoleName } from '@prisma/client';
 import {
@@ -26,6 +27,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
+import { QueryBookDto } from './dto/query-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 
 @ApiTags('books')
@@ -33,13 +35,21 @@ import { UpdateBookDto } from './dto/update-book.dto';
 export class BooksController {
   constructor(private readonly booksService: BooksService) {}
 
-  /** Tüm kitapları yazar, kategori ve yayınevi bilgisiyle listeler. */
+  /**
+   * Kitapları listeler. Sayfalama, arama, filtreleme ve sıralama destekler.
+   *
+   * Örnekler:
+   * - `/api/books?page=2&limit=20`
+   * - `/api/books?search=huzur`
+   * - `/api/books?category=Roman&author=Tanpınar`
+   * - `/api/books?sortBy=publishedYear&sortOrder=desc`
+   */
   @Public()
   @Get()
-  @ApiOperation({ summary: 'Kitapları listele' })
-  @ApiOkResponse({ description: 'Kitap listesi' })
-  findAll() {
-    return this.booksService.findAll();
+  @ApiOperation({ summary: 'Kitapları listele (sayfalama, arama, filtre, sıralama)' })
+  @ApiOkResponse({ description: 'Sayfalanmış kitap listesi: { data, meta }' })
+  findAll(@Query() query: QueryBookDto) {
+    return this.booksService.findAll(query);
   }
 
   /** Tek bir kitabın detayını getirir. */

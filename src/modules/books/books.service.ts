@@ -1,11 +1,13 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { BorrowingStatus, Prisma } from '@prisma/client';
 
+import { paginate } from '../../common/dto/pagination.dto';
 import { AppException } from '../../common/exceptions/app.exception';
 import { ErrorCode } from '../../common/exceptions/error-code.enum';
 import { mapPrismaError } from '../../common/exceptions/prisma-error';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBookDto } from './dto/create-book.dto';
+import { BookSortBy, QueryBookDto } from './dto/query-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 
 const BOOK_SELECT = {
@@ -40,13 +42,23 @@ const isbnTaken = () =>
 export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
-    const books = await this.prisma.book.findMany({
-      select: BOOK_SELECT,
-      orderBy: { title: 'asc' },
-    });
+  async findAll(query: QueryBookDto) {
+    const where = buildWhere(query);
 
-    return books.map(flatten);
+    // Sayım ve sayfa aynı transaction içinde: araya bir ekleme girerse
+    // toplam ile listenin birbirini tutmaması engellenir.
+    const [total, books] = await this.prisma.$transaction([
+      this.prisma.book.count({ where }),
+      this.prisma.book.findMany({
+        where,
+        select: BOOK_SELECT,
+        orderBy: buildOrderBy(query),
+        skip: query.skip,
+        take: query.limit,
+      }),
+    ]);
+
+    return paginate(books.map(flatten), total, query);
   }
 
   async findOne(id: number) {
@@ -244,6 +256,92 @@ export class BooksService {
       }
     }
   }
+}
+
+/**
+ * Sorgu parametrelerini Prisma filtresine çevirir.
+ *
+ * Tüm metin karşılaştırmaları `insensitive` — PostgreSQL'de bu ILIKE'a
+ * dönüşür ve `search` için Sprint 1'de kurulan trigram GIN index'inden
+ * yararlanır (docs/03-veritabani-tasarimi.md §5.3).
+ */
+export function buildWhere(query: QueryBookDto): Prisma.BookWhereInput {
+  const filters: Prisma.BookWhereInput[] = [];
+
+  if (query.search) {
+    filters.push({
+      OR: [
+        { title: { contains: query.search, mode: 'insensitive' } },
+        {
+          bookAuthors: {
+            some: {
+              author: {
+                OR: [
+                  { firstName: { contains: query.search, mode: 'insensitive' } },
+                  { lastName: { contains: query.search, mode: 'insensitive' } },
+                ],
+              },
+            },
+          },
+        },
+      ],
+    });
+  }
+
+  if (query.category) {
+    filters.push({
+      bookCategories: {
+        some: {
+          category: {
+            // Hem görünen ad hem slug kabul edilir: ?category=Bilim Kurgu
+            // ve ?category=bilim-kurgu aynı sonucu vermelidir.
+            OR: [
+              { name: { equals: query.category, mode: 'insensitive' } },
+              { slug: { equals: query.category, mode: 'insensitive' } },
+            ],
+          },
+        },
+      },
+    });
+  }
+
+  if (query.author) {
+    filters.push({
+      bookAuthors: {
+        some: {
+          author: {
+            OR: [
+              { firstName: { contains: query.author, mode: 'insensitive' } },
+              { lastName: { contains: query.author, mode: 'insensitive' } },
+            ],
+          },
+        },
+      },
+    });
+  }
+
+  if (query.publisher) {
+    filters.push({
+      publisher: { name: { contains: query.publisher, mode: 'insensitive' } },
+    });
+  }
+
+  // Birden fazla filtre AND ile birleşir: ?category=Roman&author=Pamuk
+  // ikisini birden sağlayan kitapları döndürür.
+  return filters.length ? { AND: filters } : {};
+}
+
+export function buildOrderBy(query: QueryBookDto): Prisma.BookOrderByWithRelationInput[] {
+  const primary: Prisma.BookOrderByWithRelationInput =
+    query.sortBy === BookSortBy.PublishedYear
+      ? // publishedYear opsiyonel; NULL'lar her iki yönde de sona gitmeli,
+        // aksi halde yılı girilmemiş kitaplar listenin başını doldurur.
+        { publishedYear: { sort: query.sortOrder, nulls: 'last' } }
+      : { [query.sortBy]: query.sortOrder };
+
+  // İkincil anahtar olmadan aynı değere sahip satırların sırası
+  // sayfadan sayfaya değişebilir ve bir kayıt atlanabilir/tekrarlanabilir.
+  return [primary, { id: 'asc' }];
 }
 
 /** Ara tablo sarmalayıcılarını düzleştirir: bookAuthors[].author -> authors[] */
