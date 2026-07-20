@@ -26,3 +26,6 @@ Thumbs.db
 # Proje ile ilgisi olmayan, yanlislikla bu klasore inen dosyalar
 kdenlive-*.exe
 kdenlive-*_standalone/
+
+# Ekran goruntuleri
+image*.png
