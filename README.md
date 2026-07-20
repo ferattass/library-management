@@ -110,6 +110,12 @@ modules/books/
 | `POST` `PATCH` `DELETE` | `/api/publishers` | ADMIN |
 | `GET` | `/api/books`, `/api/books/:id` | Herkese açık |
 | `POST` `PATCH` `DELETE` | `/api/books` | ADMIN |
+| `POST` | `/api/borrowings` | Token gerekli |
+| `PATCH` | `/api/borrowings/:id/return` | Sahibi veya ADMIN |
+| `GET` | `/api/borrowings`, `/api/borrowings/:id` | Sahibi veya ADMIN |
+| `POST` | `/api/reservations` | Token gerekli |
+| `GET` | `/api/reservations` | Sahibi (ADMIN `?all=true`) |
+| `PATCH` | `/api/reservations/:id/cancel` | Sahibi veya ADMIN |
 
 Seed ile gelen admin: `admin@kutupyonet.local` / `Admin123!`
 
@@ -143,6 +149,42 @@ doğrulanmıştır.
 `totalCopies` güncellenirken `availableCopies` **fark kadar kaydırılır** —
 doğrudan eşitlenseydi ödünçteki kopyalar yok sayılıp stok şişerdi. Ödünçteki
 sayının altına indirmek 409 döner.
+
+### Ödünç alma ve eşzamanlılık
+
+Şartnamedeki *"aynı anda birden fazla ödünç işlemi yönetilebilmelidir"*
+maddesi tek başına transaction ile karşılanmaz. Son kopyayı aynı anda
+isteyen iki istek, önce `SELECT` sonra `UPDATE` yapılırsa ikisi de
+"stok var" görür ve stok -1'e düşer.
+
+Çözüm okuma ve yazmayı **tek ifadede** birleştirmek:
+
+```ts
+// WHERE koşulu tutmazsa etkilenen satır 0 olur => stok tükenmiş
+await tx.book.updateMany({
+  where: { id: bookId, availableCopies: { gt: 0 } },
+  data:  { availableCopies: { decrement: 1 } },
+});
+```
+
+Arkasında ikinci savunma hattı olarak `CHECK (available_copies >= 0)`
+kısıtı durur. **Doğrulandı:** tek kopyalık bir kitabı 20 kullanıcı aynı
+anda istediğinde 1 başarılı ödünç, 19 `BOOK_OUT_OF_STOCK`, kalan stok 0.
+
+Rezervasyon kuyruğunda sıra numarası atanırken kitap satırı
+`SELECT ... FOR UPDATE` ile kilitlenir; kilit olmasaydı eşzamanlı iki
+rezervasyon aynı sıra numarasını alırdı.
+
+### İş kuralı sabitleri
+
+| Kural | Değer | Nerede |
+|---|---|---|
+| Aktif ödünç limiti | 5 | `MAX_ACTIVE_BORROWINGS` |
+| Ödünç süresi | 14 gün | `BORROW_PERIOD_DAYS` |
+| Rezervasyon alma süresi | 3 gün | `RESERVATION_PICKUP_DAYS` |
+
+Şartnamede sayısal değer verilmediği için karara bağlandı; gerekçeler
+`docs/01-is-analizi.md` §5'te.
 
 ### Yetkilendirme modeli
 
@@ -182,7 +224,7 @@ Etkilenen nesneler:
 - [x] **Sprint 2** — Authentication & Authorization (JWT, bcrypt, roller)
 - [x] **Sprint 3** — Katalog yönetimi (author, category, publisher, book CRUD)
 - [x] **Sprint 4** — Arama, filtreleme, sayfalama, sıralama
-- [ ] **Sprint 5** — Ödünç alma & rezervasyon (transaction, stok kontrolü)
+- [x] **Sprint 5** — Ödünç alma & rezervasyon (transaction, stok kontrolü)
 - [ ] **Sprint 6** — Yorum, loglama, test, Swagger
 
 Ayrıntılı gereksinimler: `Proje 2 - Kütüphane Yönetim Sistemi.pdf`
