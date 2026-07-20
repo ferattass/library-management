@@ -141,7 +141,7 @@ Etkilenen nesneler:
 
 - [x] **Sprint 1** — Analiz, ER diyagramı, veritabanı tasarımı, Docker
 - [x] **Sprint 2** — Authentication & Authorization (JWT, bcrypt, roller)
-- [ ] **Sprint 3** — Katalog yönetimi (author, category, publisher, book CRUD)
+- [x] **Sprint 3** — Katalog yönetimi (author, category, publisher, book CRUD)
 - [ ] **Sprint 4** — Arama, filtreleme, sayfalama, sıralama
 - [ ] **Sprint 5** — Ödünç alma & rezervasyon (transaction, stok kontrolü)
 - [ ] **Sprint 6** — Yorum, loglama, test, Swagger
