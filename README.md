@@ -102,8 +102,23 @@ modules/books/
 | `GET` | `/api/auth/me` | Token gerekli |
 | `GET` | `/api/users` | ADMIN |
 | `GET` | `/api/users/:id` | ADMIN |
+| `GET` | `/api/authors`, `/api/authors/:id` | Herkese açık |
+| `POST` `PATCH` `DELETE` | `/api/authors` | ADMIN |
+| `GET` | `/api/categories`, `/api/categories/:id` | Herkese açık |
+| `POST` `PATCH` `DELETE` | `/api/categories` | ADMIN |
+| `GET` | `/api/publishers`, `/api/publishers/:id` | Herkese açık |
+| `POST` `PATCH` `DELETE` | `/api/publishers` | ADMIN |
+| `GET` | `/api/books`, `/api/books/:id` | Herkese açık |
+| `POST` `PATCH` `DELETE` | `/api/books` | ADMIN |
 
 Seed ile gelen admin: `admin@kutupyonet.local` / `Admin123!`
+
+### Stok modeli
+
+`totalCopies` kütüphanedeki toplam kopya, `availableCopies` rafta olan kopya.
+`totalCopies` güncellenirken `availableCopies` **fark kadar kaydırılır** —
+doğrudan eşitlenseydi ödünçteki kopyalar yok sayılıp stok şişerdi. Ödünçteki
+sayının altına indirmek 409 döner.
 
 ### Yetkilendirme modeli
 
