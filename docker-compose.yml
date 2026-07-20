@@ -1,0 +1,53 @@
+name: kutupyonet
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: kutupyonet-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kutupyonet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kutupyonet}
+      POSTGRES_DB: ${POSTGRES_DB:-kutupyonet}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # -d ve -U olmadan pg_isready varsayılan kullanıcıya bakar ve
+      # veritabanı hazır olmadan da başarılı dönebilir.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kutupyonet} -d ${POSTGRES_DB:-kutupyonet}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: kutupyonet-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kutupyonet}:${POSTGRES_PASSWORD:-kutupyonet}@postgres:5432/${POSTGRES_DB:-kutupyonet}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      # Konteynerin kendi node_modules'ünü host'takinin üzerine bind etmesini
+      # engeller - platform-özel binary'ler (bcrypt, prisma engine) bozulmasın.
+      - /app/node_modules
+    command: sh -c "npx prisma migrate deploy && npm run start:dev"
+
+volumes:
+  postgres-data:
