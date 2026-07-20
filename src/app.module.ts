@@ -14,6 +14,7 @@ import { BorrowingsModule } from './modules/borrowings/borrowings.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { PublishersModule } from './modules/publishers/publishers.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -55,6 +56,7 @@ import { PrismaModule } from './prisma/prisma.module';
     BooksModule,
     BorrowingsModule,
     ReservationsModule,
+    ReviewsModule,
   ],
   controllers: [HealthController],
   providers: [

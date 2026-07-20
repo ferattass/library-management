@@ -116,6 +116,10 @@ modules/books/
 | `POST` | `/api/reservations` | Token gerekli |
 | `GET` | `/api/reservations` | Sahibi (ADMIN `?all=true`) |
 | `PATCH` | `/api/reservations/:id/cancel` | Sahibi veya ADMIN |
+| `GET` | `/api/reviews`, `/api/reviews/:id` | Herkese açık |
+| `POST` | `/api/reviews` | Token gerekli |
+| `PATCH` | `/api/reviews/:id` | Yalnızca sahibi |
+| `DELETE` | `/api/reviews/:id` | Sahibi veya ADMIN |
 
 Seed ile gelen admin: `admin@kutupyonet.local` / `Admin123!`
 
@@ -203,6 +207,46 @@ Roller token'dan okunmaz, **her istekte veritabanından teyit edilir**.
 Maliyeti istek başına bir sorgu; karşılığında pasifleştirilen veya rolü
 geri alınan kullanıcı, token'ının süresi dolmadan da etkisiz kalır.
 
+## Loglama
+
+Şu iş olayları loglanır: **kayıt, giriş (başarılı ve başarısız), ödünç
+alma, iade, rezervasyon, yorum**.
+
+Hassas veri loga düşmez — üretim derlemesiyle doğrulandı:
+
+| Kontrol | Sonuç |
+|---|---|
+| Düz metin şifre | log'da yok |
+| bcrypt hash (`$2b$`) | log'da yok |
+| JWT gövdesi | log'da yok |
+| `authorization` başlığı | `[REDACTED]` |
+
+`pino-http` istek gövdelerini zaten loglamadığı için şifreler log
+katmanına hiç ulaşmıyor; `redact` yapılandırması başlıklar ve olası
+gövde alanları için ikinci savunma hattı olarak duruyor.
+
+## Test
+
+```bash
+npm test          # 94 unit test
+npm run test:e2e  # 28 integration test
+```
+
+Şartnamenin istediği kapsam:
+
+| İstenen | Dosya |
+|---|---|
+| Unit — Auth Service | `src/modules/auth/auth.service.spec.ts` |
+| Unit — Borrowing Service | `src/modules/borrowings/borrowings.service.spec.ts` |
+| Integration — Auth endpoint'leri | `test/auth.e2e-spec.ts` |
+| Integration — Borrowing endpoint'leri | `test/borrowings.e2e-spec.ts` |
+
+Eşzamanlılık senaryosu (tek kopyaya 15 eşzamanlı istek) integration
+testine dahildir — elle değil, her koşuşta doğrulanır.
+
+Testler geliştirme veritabanına karşı çalışır ve kendi verilerini
+teste özel e-posta alan adı / başlık öneki ile ayırıp sonunda temizler.
+
 ## Migration notu
 
 CHECK kısıtları ve kısmi (partial) index'ler Prisma şema DSL'i ile ifade
@@ -225,6 +269,6 @@ Etkilenen nesneler:
 - [x] **Sprint 3** — Katalog yönetimi (author, category, publisher, book CRUD)
 - [x] **Sprint 4** — Arama, filtreleme, sayfalama, sıralama
 - [x] **Sprint 5** — Ödünç alma & rezervasyon (transaction, stok kontrolü)
-- [ ] **Sprint 6** — Yorum, loglama, test, Swagger
+- [x] **Sprint 6** — Yorum, loglama, test, Swagger
 
 Ayrıntılı gereksinimler: `Proje 2 - Kütüphane Yönetim Sistemi.pdf`
