@@ -1,6 +1,7 @@
 # Kütüphane Yönetim Sistemi
 
-NestJS 11 + Prisma 7 + PostgreSQL 17 ile geliştirilen kütüphane yönetim API'si.
+NestJS 11 + Prisma 7 + PostgreSQL 17 ile geliştirilen kütüphane yönetim API'si
+ve onu tüketen Next.js 16 arayüzü.
 
 ## Hızlı Başlangıç
 
@@ -15,6 +16,15 @@ Ardından:
 |---|---|
 | http://localhost:3000/api/health | Sağlık kontrolü |
 | http://localhost:3000/api/docs | Swagger dokümantasyonu |
+
+Arayüz için ayrıca:
+
+```bash
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev               # http://localhost:3001
+```
 
 ### Docker olmadan (yerel geliştirme)
 
@@ -261,6 +271,34 @@ Etkilenen nesneler:
 - `reservations_active_user_book_uniq` (kısmi unique index)
 - `borrowings_active_idx`, `reservations_queue_idx`, `books_available_idx`
 - `books_title_trgm_idx`, `authors_name_trgm_idx`
+
+## Arayüz (frontend/)
+
+Next.js 16 (App Router) + Tailwind 4. Şartname backend-only olduğu için
+kapsam dışıdır; API'yi uçtan uca göstermek amacıyla eklenmiştir.
+
+| Yol | İçerik |
+|---|---|
+| `/` | Katalog — arama, kategori filtresi, sıralama, sayfalama |
+| `/kitaplar/:id` | Kitap detayı, ödünç al / rezerve et, yorumlar |
+| `/hesabim` | Ödünçtekiler (iade), rezervasyonlar (iptal), geçmiş |
+| `/giris`, `/kayit` | Kimlik doğrulama |
+
+**Tarayıcı backend'e hiç doğrudan gitmez.** Bütün istekler Next sunucusundan
+geçer. İki sebeple: backend'de CORS kapalı (açmak bitmiş sprint kodunu
+değiştirmek olurdu) ve JWT `httpOnly` cookie'de tutulduğu için token'ın
+istemci JavaScript'ine ulaşmaması gerekiyor. Mutasyonlar Server Action.
+
+Token 15 dakikada doluyor ve backend'de refresh yok; cookie ömrü de 15 dakika
+verilerek "süresi dolmuş token'la giriş yapmış görünme" durumu engellendi.
+401 alındığında oturum temizlenip `/giris`'e yönlendirilir.
+
+Başarı bildirimleri bileşen içinde değil URL üzerinden (`?bilgi=...`)
+taşınır — iade/iptal/silme sonrası ilgili satır listeden kalktığı için
+mesajı o satırda tutmak kullanıcıya hiçbir onay göstermiyordu.
+
+`GET /api/auth/me` yalnızca `{ id, email, roles }` döndürdüğünden ad-soyad
+login yanıtından alınıp ayrı bir cookie'de saklanır.
 
 ## Sprint Durumu
 

@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f5f3;
+  --surface: #ffffff;
+  --surface-muted: #efedea;
+  --foreground: #1c1a17;
+  --muted: #6d675f;
+  --border: #ddd8d1;
+  --accent: #7a4a1e;
+  --accent-soft: #f0e4d8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #16140f;
+    --surface: #201d17;
+    --surface-muted: #2a261f;
+    --foreground: #ece7df;
+    --muted: #a49c90;
+    --border: #37322a;
+    --accent: #d9a066;
+    --accent-soft: #322921;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Klavye kullanıcısı için her yerde görünür bir odak halkası. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
