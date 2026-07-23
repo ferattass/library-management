@@ -29,3 +29,6 @@ kdenlive-*_standalone/
 
 # Ekran goruntuleri
 image*.png
+
+# Playwright MCP oturum dosyalari
+.playwright-mcp/

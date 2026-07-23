@@ -1,0 +1,61 @@
+# Render Blueprint — tek seferde kurulum: Dashboard → New → Blueprint → bu repo.
+# Alan referansı: https://render.com/docs/blueprint-spec
+
+services:
+  # --- NestJS API ---
+  - type: web
+    name: kutupyonet-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build
+    # Free planda preDeployCommand yok; migration her açılışta burada uygulanır.
+    # migrate deploy idempotent olduğu için tekrar çalışması sorun değil.
+    startCommand: npx prisma migrate deploy && node dist/main.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kutupyonet-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: BCRYPT_ROUNDS
+        value: "12"
+
+  # --- Next.js arayüz ---
+  - type: web
+    name: kutupyonet-web
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: frontend
+    buildCommand: npm ci --include=dev && npm run build
+    # Render trafiği kendi verdiği PORT'a yönlendirir; package.json'daki
+    # sabit 3001 burada kullanılamaz.
+    startCommand: npx next start -p $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      # Arayüz backend'e yalnızca sunucu tarafından gider (bkz. frontend/src/lib/api.ts).
+      # İlk deploy sonrası API'nin gerçek adresiyle eşleştiği doğrulanmalı —
+      # isim çakışırsa Render sonek ekler.
+      - key: API_BASE_URL
+        value: https://kutupyonet-api.onrender.com/api
+
+databases:
+  # DİKKAT: Free Postgres oluşturulduktan 30 gün sonra silinir (14 gün ek süre
+  # içinde ücretli plana yükseltilebilir). Kalıcılık gerekirse plan yükselt
+  # ya da veritabanını Neon gibi kalıcı ücretsiz bir servise taşı.
+  - name: kutupyonet-db
+    plan: free
+    region: frankfurt
+    databaseName: kutupyonet
+    user: kutupyonet
+    postgresMajorVersion: "17"
