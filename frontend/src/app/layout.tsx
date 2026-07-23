@@ -40,6 +40,14 @@ async function Header() {
             Hesabım
           </Link>
         )}
+        {user?.roles.includes('ADMIN') && (
+          <Link
+            href="/yonetim/kitaplar"
+            className="text-sm font-medium text-accent hover:opacity-80"
+          >
+            Yönetim
+          </Link>
+        )}
 
         <div className="ml-auto flex items-center gap-3 text-sm">
           {user ? (

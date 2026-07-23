@@ -13,6 +13,9 @@ export const FLASH_MESSAGES: Record<string, string> = {
   'rezervasyon-iptal': 'Rezervasyon iptal edildi.',
   'yorum-eklendi': 'Yorumunuz eklendi.',
   'yorum-silindi': 'Yorum silindi.',
+  eklendi: 'Kayıt eklendi.',
+  guncellendi: 'Kayıt güncellendi.',
+  silindi: 'Kayıt silindi.',
 };
 
 export function flashMessage(code: string | undefined): string | null {

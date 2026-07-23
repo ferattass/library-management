@@ -99,3 +99,31 @@ export interface Category {
   /** Backend her kategoriye bağlı kitap sayısını da döndürüyor. */
   _count: { bookCategories: number };
 }
+
+export interface Author {
+  id: number;
+  firstName: string;
+  lastName: string;
+  biography: string | null;
+  birthDate: string | null;
+  _count: { bookAuthors: number };
+}
+
+export interface Publisher {
+  id: number;
+  name: string;
+  website: string | null;
+  address: string | null;
+  _count: { books: number };
+}
+
+/** GET /api/users (ADMIN) — sayfalanmaz, düz dizi döner. */
+export interface UserSummary {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+  roles: RoleName[];
+  createdAt: string;
+}
